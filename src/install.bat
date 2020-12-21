@@ -1,7 +1,11 @@
 IF EXIST C:\Python391\python.exe GOTO pythonInstalled
-curl -s "https://www.python.org/ftp/python/3.9.1/python-3.9.1-amd64.exe" --output src\python_installer.exe
-"src\python_installer.exe" /quiet PrependPath=1  include_pip=0 Include_test=0 TargetDir=c:\Python391
-DEL src\python_installer.exe
+curl -s "https://www.python.org/ftp/python/3.9.1/python-3.9.1-embed-amd64.zip" --output src\python391.zip
+MKDIR src\python391
+CD src\python391
+"..\..\bin\7z.exe" x "..\python391.zip" * 
+CD ..\..
+MOVE src\python391 c:\
+DEL src\python391.zip
 :pythonInstalled
 REG query HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run /v lovekey
 IF %errorlevel%==0 GOTO keyInstalled
